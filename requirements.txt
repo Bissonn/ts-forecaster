@@ -1,0 +1,16 @@
+# Core Libraries
+numpy
+pandas
+torch
+statsmodels
+scikit-learn
+scipy
+matplotlib
+pyyaml
+schema
+
+# Hyperparameter Optimization
+optuna
+
+# Testing
+pytest
