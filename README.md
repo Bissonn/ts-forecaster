@@ -1,143 +1,136 @@
-# TS-Forecaster: Advanced Time Series Forecasting Framework
+# TS‑Forecaster: Advanced Time Series Forecasting Framework
 
-## 🤖 Project Overview
+A flexible, extensible Python framework for **time series forecasting**. Train, evaluate, and compare classical models (e.g., **ARIMA**, **VAR**) and deep learning architectures (e.g., **LSTM**, **Transformer**) through a unified interface and a configurable preprocessing pipeline.
 
-This project provides a flexible and extensible Python-based framework for time series forecasting. It is designed to facilitate the training, evaluation, and comparison of a wide range of models—from classical statistical methods like **ARIMA** and **VAR** to advanced deep learning architectures, including **LSTM** and **Transformer** networks.
-
-Key features include:
-- **Unified Model Interface**: A model registry system allows for the easy integration of new architectures without altering the core training logic.
-- **Automated Preprocessing Pipeline**: A powerful, configurable preprocessing engine handles data transformations such as scaling, differencing, log transforms, and outlier capping.
-- **Hyperparameter Optimization**: Built-in support for `Grid Search`, `Random Search`, and `Optuna` enables automated model tuning to find the best-performing parameters.
-- **YAML-Based Configuration**: The entire workflow—from dataset definitions to model parameters and experiment setups—is managed through a single, human-readable `config.yaml` file.
-- **Comprehensive Evaluation & Visualization**: The framework automatically calculates key performance metrics (MAE, RMSE, SMAPE, MASE) and generates plots comparing forecasts against actual values.
+<p align="center">
+  <em>Unified interface • Powerful preprocessing • Config‑driven experiments • Reproducible results</em>
+</p>
 
 ---
 
-## 📁 Directory Structure
-
-The project is organized into a modular structure to promote clarity and ease of extension.
-
-mag/
-├── config.yaml                # Main configuration file for all experiments.
-├── data/                      # Directory for storing raw dataset files (e.g., .csv).
-├── models/                    # Contains all forecasting model implementations.
-├── results/                   # Default output directory for all generated artifacts.
-├── scripts/                   # Main executable scripts for running the pipeline.
-├── tests/                     # Unit and integration tests mirroring the project structure.
-└── utils/                     # Core utilities and helper modules.
-
-
-- **`models/`**: This is where the logic for each forecasting model resides. The `base.py` file defines the abstract classes that all models must inherit from, ensuring a consistent API. The `model_registry.py` handles the registration of new models so they are accessible to the factory.
-- **`results/`**: All outputs from the training and evaluation process are saved here. This includes logs, performance metrics, visualizations, and serialized trained models.
-- **`scripts/`**: Contains the main entry point for the application, `train.py`, which orchestrates the entire process from configuration loading to model training and prediction.
-- **`tests/`**: Holds all tests for the project. The structure of this directory mirrors the main project structure to make locating tests for specific modules intuitive.
-- **`utils/`**: A collection of helper modules responsible for tasks like loading configurations (`config_utils.py`), managing datasets (`dataset.py`), preprocessing data (`preprocessor.py`), calculating metrics (`metrics.py`), and running hyperparameter searches (`hyperopt/`).
+## Table of Contents
+- [Features](#features)
+- [Project Structure](#project-structure)
+- [Installation](#installation)
+- [Quick Start](#quick-start)
+- [Configuration](#configuration)
+  - [Experiments](#experiments)
+  - [Datasets](#datasets)
+  - [Models](#models)
+  - [Preprocessing](#preprocessing)
+- [Built‑in Models](#built-in-models)
+- [Add a New Model](#add-a-new-model)
+- [Evaluation & Results](#evaluation--results)
+- [Testing](#testing)
+- [Tips on Differencing Without Losing Samples](#tips-on-differencing-without-losing-samples)
+- [Contributing](#contributing)
+- [License](#license)
 
 ---
 
-## 🚀 How to Use
+## Features
+- **Unified model interface** – swap models without changing training script.
+- **Automated preprocessing** – scaling, log transforms, winsorization, differencing (incl. seasonal), and time features.
+- **Config‑driven pipeline** – everything in one `config.yaml` (datasets, models, experiments, preprocessing, optimization).
+- **Hyperparameter optimization** – `grid`, `random`, and `optuna`.
+- **Walk‑forward validation** – consistent, reproducible evaluation.
+- **Rich metrics & plots** – MAE, RMSE, SMAPE, MASE and forecast vs. actual visualizations.
 
-The primary entry point for all operations is the `scripts/train.py` script.
+---
 
-**Step 1: Configure Your Environment**
+## Project Structure
+> This is the *recommended* layout. Your repository may use slightly different paths; update as needed.
 
-First, adjust the `config.yaml` file to define your datasets, models, and experiment parameters. See the detailed configuration section below for all available options.
+```
+.
+├─ config.yaml                 # Global configuration for datasets, models, and experiments
+├─ data/                       # Raw/processed datasets (CSV, Parquet, ...)
+├─ models/                     # Forecasting models (ARIMA, VAR, LSTM, Transformer, ...)
+│  ├─ base.py                  # Base forecaster classes (StatTSForecaster, NeuralTSForecaster)
+│  └─ ...
+├─ utils/                      # Core utilities
+│  ├─ dataset.py               # Data loading & splitting
+│  ├─ preprocessor.py          # Configurable preprocessing engine
+│  └─ ...
+├─ scripts/                    # Entry points / CLI
+│  └─ train.py                 # Orchestrates fit → predict → evaluate
+├─ tests/                      # Unit & integration tests mirroring src layout
+└─ results/                    # Metrics, plots, and serialized models
+```
 
-**Step 2: Run the Training Script**
+---
 
-Execute the `train.py` script from your terminal using the following commands.
+## Installation
+```bash
+# 1) Create and activate a virtual environment
+python -m venv .venv
+source .venv/bin/activate  # Windows: .venv\Scripts\activate
 
-- **Train a single model on a specific dataset:**
-  ```bash
-  python -m scripts.train --model arima --dataset ETTh1
-Train multiple models simultaneously:
+# 2) Install dependencies
+pip install -U pip
+pip install -r requirements.txt
+```
 
-Bash
+> **Python**: 3.10–3.12 recommended.
 
+---
+
+## Quick Start
+Train a single model on a dataset:
+
+```bash
+python -m scripts.train --model arima --dataset ETTh1
+```
+
+Train multiple models:
+```bash
 python -m scripts.train --models arima lstm_direct --dataset ETTh1
-Run training with hyperparameter optimization enabled:
-(Ensure the optimize: true flag and optimization block are set in config.yaml for the model)
+```
 
-Bash
+Enable hyperparameter optimization (ensure the `optimize: true` flag and the `optimization` block are set in `config.yaml`):
+```bash
+python -m scripts.train --model lstm_direct --dataset my_dataset --optimized
+```
 
-python -m scripts.train --model lstm_direct --dataset gemini_data --optimized
-Force retraining, ignoring any saved model files:
-
-Bash
-
+Force retraining (ignore saved models):
+```bash
 python -m scripts.train --model var --dataset ETTh1 --force-train
-All results, including metrics, plots, and trained models, will be saved to the results/ directory.
+```
 
-🛠️ Configuration (config.yaml)
-The config.yaml file is the central control panel for the entire framework. It is validated against a schema defined in utils/config_utils.py.
+All outputs (metrics, plots, artifacts) are saved under `results/`.
 
-Main Sections
-experiments
-This section defines the overall validation and evaluation strategy.
+---
 
-name (string): A descriptive name for the experiment.
+## Configuration
+The entire pipeline is configured via `config.yaml`. It is validated against an internal schema in `utils/config_utils.py` (or equivalent).
 
-description (string): A longer description of the experiment's goal.
+### Experiments
+```yaml
+experiments:
+  name: "Baseline"
+  description: "Compare classical vs neural models"
+  validation_setup:
+    forecast_steps: 24         # horizon
+    n_folds: 3                 # walk‑forward folds
+    max_window_size: 720       # initial window in first fold
+    early_stopping_validation_percentage: 0.2
+```
 
-validation_setup:
+### Datasets
+```yaml
+datasets:
+  ETTh1:
+    path: data/ETTh1.csv
+    columns: ["target", "exog1", "exog2"]
+    freq: "H"                   # optional; inferred if omitted
+    preprocessing:              # optional; dataset‑level default preprocessing
+      scaling:
+        enabled: true
+        method: standard
+```
 
-forecast_steps (integer): The number of future time steps to predict (the forecast horizon).
-
-n_folds (integer): The number of folds to use in walk-forward cross-validation for hyperparameter tuning.
-
-max_window_size (integer): The size of the initial training window in the first fold of cross-validation.
-
-early_stopping_validation_percentage (float): The percentage of data from each fold to use as a validation set for early stopping in neural network training.
-
-datasets
-This section defines all available datasets.
-
-<dataset_name>: A unique identifier for the dataset.
-
-path (string): The file path to the CSV dataset. The path is validated for existence.
-
-columns (list of strings): The specific columns from the CSV file to be used as features.
-
-freq (string, optional): The frequency of the time series data (e.g., 'H' for hourly, 'D' for daily). If not provided, the framework will attempt to infer it. See Pandas Offset Aliases for all options.
-
-preprocessing (dict, optional): Dataset-specific preprocessing steps that will apply to all models trained on this data. The structure is the same as the model-level preprocessing block described below.
-
-models
-This is where you configure the parameters for each forecasting model.
-
-<model_name>: The name must match a registered model (e.g., arima, lstm_direct).
-
-Base Parameters: Each model has its own set of required and optional parameters (e.g., p, d, q for ARIMA; window_size, hidden_size for LSTM). These are used when optimization is disabled.
-
-optimize (boolean): Set to true to enable hyperparameter optimization for this model.
-
-optimization block (dict, optional):
-
-method (string): The optimization strategy. Must be one of grid, random, or optuna.
-
-params (dict): The hyperparameter search space.
-
-For discrete values, provide a list: p: [1, 2, 3].
-
-For integer ranges, provide a dictionary: hidden_size: {"min": 32, "max": 128, "step": 32}.
-
-For float ranges, provide a dictionary: learning_rate: {"min": 0.0001, "max": 0.01, "log": true}. log: true enables logarithmic sampling.
-
-preprocessing block (dict, optional): Model-specific data transformations.
-
-log_transform (enabled: bool, method: 'log' or 'log1p').
-
-winsorize (enabled: bool, limits: [lower_quantile, upper_quantile]).
-
-scaling (enabled: bool, method: 'minmax' or 'standard').
-
-differencing (enabled: bool, auto: 'adf', 'kpss', or 'none', order: int, seasonal_order: int, seasonal_period: int).
-
-Configuration Examples
-Example 1: Simple ARIMA with Grid Search Optimization
-
-YAML
-
+### Models
+```yaml
 models:
   arima:
     p: 5
@@ -154,12 +147,8 @@ models:
     preprocessing:
       scaling:
         enabled: true
-        method: 'standard'
-Example 2: LSTM with Optuna Optimization and Complex Preprocessing
+        method: standard
 
-YAML
-
-models:
   lstm_direct:
     window_size: 90
     hidden_size: 128
@@ -168,81 +157,90 @@ models:
     optimization:
       method: optuna
       params:
-        window_size: [30, 60, 90] # Optuna treats lists as categorical choices
-        hidden_size:
-          min: 64
-          max: 256
-          step: 32
-        learning_rate:
-          min: 0.0001
-          max: 0.01
-          log: true
-        n_trials: 20 # n_trials is part of the params block
+        window_size: [30, 60, 90]
+        hidden_size: {min: 64, max: 256, step: 32}
+        learning_rate: {min: 1e-4, max: 1e-2, log: true}
+        n_trials: 20
     preprocessing:
-      scaling:
-        enabled: true
-        method: 'minmax'
-      differencing:
-        enabled: true
-        auto: 'adf'
-        max_d: 2
-✨ Adding New Models
-The framework is designed for easy extension. To add a custom forecasting model, follow these steps:
+      scaling: {enabled: true, method: minmax}
+      differencing: {enabled: true, auto: adf, max_d: 2}
+```
 
-Create the Model File: In the mag/models/ directory, create a new Python file (e.g., my_new_model.py).
+### Preprocessing
+Supported steps (toggle per dataset/model):
+- `log_transform`: `enabled`, `method: log|log1p`
+- `winsorize`: `enabled`, `limits: [lower_q, upper_q]`
+- `scaling`: `enabled`, `method: minmax|standard`, `range: [0, 1]`
+- `differencing`:
+  - `enabled`
+  - `auto: adf|kpss|none`
+  - `order: int` (d)
+  - `seasonal_order: int` (D)
+  - `seasonal_period: int` (m)
 
-Implement the Forecaster Class:
+> The framework keeps a per‑column **`pipeline_states`** dictionary with learned parameters (e.g., scalers, differencing orders) to ensure a correct `inverse_transform` after prediction.
 
-Your new class must inherit from either StatTSForecaster (for statistical models) or NeuralTSForecaster (for deep learning models), which are defined in models/base.py.
+---
 
-Implement all the abstract methods required by the base class, such as fit and predict.
+## Built‑in Models
+- **ARIMA / SARIMA** (statistical)
+- **VAR** (multivariate)
+- **LSTM** (direct, iterative)
+- **Transformer** (configurable encoder‑decoder)
 
-Call the parent constructor (super().__init__(...)) within your model's __init__ method.
+> Models adhere to a common base (see `models/base.py`) exposing `fit()`, `predict()`, and persistence utilities.
 
-Register Your Model:
+---
 
-Decorate your class with @register_model from models.model_registry.
+## Add a New Model
+1. **Create a file** under `models/` (e.g., `my_model.py`).
+2. **Inherit** from `StatTSForecaster` (classical) or `NeuralTSForecaster` (DL).
+3. **Implement** required methods (`fit`, `predict`, constructor params).
+4. **Register** the model with the registry (e.g., `@register_model("my_model", is_univariate=False)`).
+5. **Expose** the import in `scripts/train.py` (so registration runs).
+6. **Configure** the model in `config.yaml` under `models:`.
 
-Provide a unique string name (this name will be used in config.yaml) and set the is_univariate flag if your model can only handle a single time series at a time.
+---
 
-Python
+## Evaluation & Results
+After each run the framework stores:
+- **Metrics**: MAE, RMSE, SMAPE, MASE per fold and averaged.
+- **Artifacts**: trained model files, preprocessing state.
+- **Visualizations**: forecast vs. actual plots (PNG/HTML).
 
-# In mag/models/my_new_model.py
-from models.base import StatTSForecaster
-from models.model_registry import register_model
+Results are grouped by experiment/model/dataset inside `results/`.
 
-@register_model("my_model", is_univariate=False)
-class MyNewModelForecaster(StatTSForecaster):
-    def __init__(self, model_params, num_features, forecast_steps):
-        super().__init__(model_params, num_features, forecast_steps)
-        # ... custom initialization ...
+---
 
-    def fit(self, train_series, val_series=None):
-        # ... model fitting logic ...
-        self.fitted = True
+## Testing
+Run the complete suite:
+```bash
+pytest -q
+```
 
-    def predict(self, input_data=None, forecast_steps=None):
-        # ... prediction logic ...
-        # return pd.DataFrame(...)
-Make the Model Discoverable: Add an import statement for your new module in mag/scripts/train.py to ensure the registration code runs when the application starts.
+Guidelines:
+- Tests mirror the source structure (`tests/utils/test_preprocessor*.py`, etc.).
+- Prefer **unit tests** with mocking for speed and determinism; add **integration tests** for end‑to‑end flows.
 
-Python
+---
 
-# In mag/scripts/train.py
-import models.my_new_model
-Add Configuration: Finally, add a new section for my_model in your config.yaml file under the models key to define its parameters.
+## Tips on Differencing Without Losing Samples
+Differencing normally drops the first `d + D·m` observations. This framework uses a **stateful lag‑buffer**:
+- During `fit`, the raw history is stored per column.
+- During `transform(test)`, a minimal tail of history (size `d + D·m`) is **prepended** to the test fragment, differencing is computed on the concatenation, and then the prepended tail is **sliced off**.
+- This preserves the **length and index** of the fragment and avoids off‑by‑one issues during `inverse_transform`.
 
-Your new model is now fully integrated into the framework and can be used just like any of the built-in models.
+> For inverse differencing, continuity checks allow a start offset up to `d + D·m` steps and use historical anchors to reconstruct values in the correct order (seasonal → regular).
 
-🧪 Testing Strategy
-The project maintains a comprehensive test suite to ensure code quality and reliability. The testing philosophy is based on a parallel directory structure.
+---
 
-Parallel Structure: For every file in the main project (e.g., utils/dataset.py), there is a corresponding test file in the tests/ directory (e.g., tests/utils/test_dataset.py).
+## Contributing
+Contributions are welcome! Please:
+1. Open an issue describing the change.
+2. Create a feature branch and include tests.
+3. Run `pytest` and ensure all checks pass.
 
-Naming Convention: Test files are always prefixed with test_. For example, the tests for utils/preprocessor.py are located in tests/utils/test_preprocessor.py.
+---
 
-Test Types:
-
-Unit Tests: The majority of tests are unit tests, which verify the functionality of individual functions and classes in isolation. Dependencies are heavily mocked using pytest and unittest.mock to ensure tests are fast and deterministic.
-
-Integration Tests: A smaller set of integration tests (e.g., tests/test_integration.py) verifies that different components of the system work together correctly in a full fit -> predict pipeline.
+## License
+MIT
